@@ -1,3 +1,5 @@
-*.o
-*.obj
-*.pdb
+build/*
+!build/templates
+bin/*
+!bin/media/
+*.lib

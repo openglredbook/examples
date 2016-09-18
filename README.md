@@ -23,11 +23,11 @@ Other compilers and IDEs should work, but we haven't tested them.
 Running
 -------
 
-Download the media pack from the download area in the repository and unpack it
-into the bin/media directory. This contains model files and textures used by the
-applications. Without this, most applications won't work and will quite possibly
-crash. Don't file bugs about that if you don't have the media files.
-Otherwise, the samples should compile and run out-of-the box. Of course, make sure your
+After building, there will be a large collection of executables in the bin directory.
+These are the example applications, which you can directly execute.
+
+The media is now included with the git repository, and
+the samples should compile and run out-of-the box. Of course, make sure your
 OpenGL drivers are up to date and that your hardware is capable of running OpenGL 4.5.
 That's what this book is about. Some systems don't support OpenGL 4.5 and will therefore
 not run some of the samples. Trying to run such samples on a machine that doesn't have

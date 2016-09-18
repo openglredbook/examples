@@ -1,0 +1,6 @@
+*.tga -diff
+*.vbm -diff
+*.png -diff
+*.dds -diff
+*.BMP -diff
+*.raw -diff
