@@ -11,7 +11,7 @@
 #  define _USE_MATH_DEFINES 1
 #endif
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 
 const float  DegreesToRadians = static_cast<float>(M_PI / 180.0f);
