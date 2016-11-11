@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 BEGIN_APP_DECLARATION(FurApplication)
     // Override functions from base class

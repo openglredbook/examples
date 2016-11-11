@@ -6,6 +6,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <cstdio>
 
 #include <GL3/gl3w.h>
 #include "LoadShaders.h"

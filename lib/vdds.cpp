@@ -602,44 +602,47 @@ void vglLoadDDS(const char* filename, vglImageData* image)
 
     if (image->target == GL_NONE)
         goto done_close_file;
-
-    size_t current_pos = ftell(f);
-    size_t file_size;
-    fseek(f, 0, SEEK_END);
-    file_size = ftell(f);
-    fseek(f, (long)current_pos, SEEK_SET);
-
-    image->totalDataSize = file_size - current_pos;
-    image->mip[0].data = new uint8_t [image->totalDataSize];
-
-    fread(image->mip[0].data, file_size - current_pos, 1, f);
-
-    int level;
-    GLubyte * ptr = reinterpret_cast<GLubyte*>(image->mip[0].data);
-
-    int width = file_header.std_header.width;
-    int height = file_header.std_header.height;
-    int depth = file_header.std_header.depth;
-
-    image->sliceStride = 0;
-
-    if (image->mipLevels == 0)
+    
     {
-        image->mipLevels = 1;
-    }
+        size_t current_pos = ftell(f);
+        size_t file_size;
+        fseek(f, 0, SEEK_END);
+        file_size = ftell(f);
+        fseek(f, (long)current_pos, SEEK_SET);
 
-    for (level = 0; level < image->mipLevels; ++level)
-    {
-        image->mip[level].data = ptr;
-        image->mip[level].width = width;
-        image->mip[level].height = height;
-        image->mip[level].depth = depth;
-        image->mip[level].mipStride = vgl_GetDDSStride(file_header, width) * height;
-        image->sliceStride += image->mip[level].mipStride;
-        ptr += image->mip[level].mipStride;
-        width >>= 1;
-        height >>= 1;
-        depth >>= 1;
+        image->totalDataSize = file_size - current_pos;
+        image->mip[0].data = new uint8_t [image->totalDataSize];
+
+        fread(image->mip[0].data, file_size - current_pos, 1, f);
+
+        int level;
+        GLubyte * ptr = reinterpret_cast<GLubyte*>(image->mip[0].data);
+
+        int width = file_header.std_header.width;
+        int height = file_header.std_header.height;
+        int depth = file_header.std_header.depth;
+
+        image->sliceStride = 0;
+
+        if (image->mipLevels == 0)
+        {
+            image->mipLevels = 1;
+        }
+
+        for (level = 0; level < image->mipLevels; ++level)
+        {
+            image->mip[level].data = ptr;
+            image->mip[level].width = width;
+            image->mip[level].height = height;
+            image->mip[level].depth = depth;
+            image->mip[level].mipStride = vgl_GetDDSStride(file_header, width) * height;
+            image->sliceStride += image->mip[level].mipStride;
+            ptr += image->mip[level].mipStride;
+            width >>= 1;
+            height >>= 1;
+            depth >>= 1;
+        }
+
     }
 
 done_close_file:
