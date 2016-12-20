@@ -12,6 +12,7 @@
 #include "vmath.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 BEGIN_APP_DECLARATION(FurApplication)

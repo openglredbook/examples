@@ -603,8 +603,8 @@ void vglLoadDDS(const char* filename, vglImageData* image)
     if (image->target == GL_NONE)
         goto done_close_file;
 
-    size_t current_pos = ftell(f);
-    size_t file_size;
+    size_t current_pos, file_size;
+    current_pos = ftell(f);
     fseek(f, 0, SEEK_END);
     file_size = ftell(f);
     fseek(f, (long)current_pos, SEEK_SET);
@@ -615,11 +615,13 @@ void vglLoadDDS(const char* filename, vglImageData* image)
     fread(image->mip[0].data, file_size - current_pos, 1, f);
 
     int level;
-    GLubyte * ptr = reinterpret_cast<GLubyte*>(image->mip[0].data);
+    GLubyte * ptr;
+    ptr = reinterpret_cast<GLubyte*>(image->mip[0].data);
 
-    int width = file_header.std_header.width;
-    int height = file_header.std_header.height;
-    int depth = file_header.std_header.depth;
+    int width, height, depth;
+    width = file_header.std_header.width;
+    height = file_header.std_header.height;
+    depth = file_header.std_header.depth;
 
     image->sliceStride = 0;
 

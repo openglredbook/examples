@@ -1,7 +1,5 @@
 #include "vapp.h"
 
-#include <time.h>
-
 void VermilionApplication::window_size_callback(GLFWwindow* window, int width, int height)
 {
     VermilionApplication* pThis = (VermilionApplication*)glfwGetWindowUserPointer(window);
@@ -25,23 +23,11 @@ void VermilionApplication::char_callback(GLFWwindow* window, unsigned int codepo
 
 unsigned int VermilionApplication::app_time()
 {
-#ifdef _WIN32
-    ULONGLONG currentTime = ::GetTickCount64();
-
-    return (unsigned int)(currentTime - m_appStartTime);
-#else
-    return 0;
-#endif
+    return (unsigned int) (glfwGetTime() * 1000.0);
 }
 
 void VermilionApplication::Initialize(const char * title)
 {
-#ifdef _WIN32
-    m_appStartTime = ::GetTickCount64();
-#else
-    gettimeofday(&m_appStartTime, nullptr);
-#endif
-
     glfwInit();
 
 #ifdef _DEBUG
