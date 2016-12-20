@@ -1,6 +1,8 @@
 #ifndef __VAPP_H__
 #define __VAPP_H__
 
+#include <time.h>
+
 #include "vgl.h"
 
 class VermilionApplication

@@ -9,9 +9,11 @@
 
 #ifdef WIN32
 #  define _USE_MATH_DEFINES 1
+#  include <math.h>
+#else
+#  include <cmath>
 #endif
 
-#include <math.h>
 #include <iostream>
 
 const float  DegreesToRadians = static_cast<float>(M_PI / 180.0f);

@@ -3,6 +3,7 @@
 #include "vbm.h"
 #include "vgl.h"
 
+#include <string.h>
 #include <stdio.h>
 
 VBObject::VBObject(void)
@@ -89,7 +90,7 @@ bool VBObject::LoadFromVBM(const char * filename, int vertexIndex, int normalInd
          else if(attribIndex == 2)
             attribIndex = texCoord0Index;
 
-        glVertexAttribPointer(attribIndex, m_attrib[i].components, m_attrib[i].type, GL_FALSE, 0, (GLvoid *)total_data_size);
+        glVertexAttribPointer(attribIndex, m_attrib[i].components, m_attrib[i].type, GL_FALSE, 0, (GLvoid *)(intptr_t)total_data_size);
         glEnableVertexAttribArray(attribIndex);
         total_data_size += m_attrib[i].components * sizeof(GLfloat) * header->num_vertices;
     }
