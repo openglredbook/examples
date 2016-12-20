@@ -30,7 +30,7 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(lib/glfw)
 
 if(WIN32)
-set(COMMON_LIBS vermilion ${OPENGL_LIBRARIES} optimized glfw3 debug glfw3_d)
+set(COMMON_LIBS vermilion ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES})
 elseif (UNIX)
 set(COMMON_LIBS vermilion ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES} rt ${CMAKE_DL_LIBS})
 else()
