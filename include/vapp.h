@@ -1,8 +1,6 @@
 #ifndef __VAPP_H__
 #define __VAPP_H__
 
-#include <time.h>
-
 #include "vgl.h"
 
 class VermilionApplication
@@ -13,12 +11,6 @@ protected:
 
     static VermilionApplication * s_app;
     GLFWwindow* m_pWindow;
-
-#ifdef _WIN32
-    ULONGLONG       m_appStartTime;
-#else
-    struct timeval  m_appStartTime;
-#endif
 
     static void window_size_callback(GLFWwindow* window, int width, int height);
     static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
