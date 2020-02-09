@@ -116,6 +116,10 @@ void ShadowMapExample::Initialize(const char * title)
     glUseProgram(render_scene_prog);
     glUniform1i(glGetUniformLocation(render_scene_prog, "depth_texture"), 0);
 
+    // Create FBO to render depth into
+    glGenFramebuffers(1, &depth_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo);
+
     // Create a depth texture
     glGenTextures(1, &depth_texture);
     glBindTexture(GL_TEXTURE_2D, depth_texture);
@@ -128,10 +132,7 @@ void ShadowMapExample::Initialize(const char * title)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // Create FBO to render depth into
-    glGenFramebuffers(1, &depth_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, depth_texture, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture, 0);
     glDrawBuffer(GL_NONE);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
