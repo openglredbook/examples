@@ -1,5 +1,5 @@
 #include "bufferObjects.h"
-#include "vgl.h"
+
 
 //static const GLenum bufferUsage = GL_STATIC_DRAW_ARB;
 static const GLenum bufferUsage = GL_DYNAMIC_DRAW;

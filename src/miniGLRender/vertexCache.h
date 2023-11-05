@@ -1,161 +1,150 @@
+#ifndef __VERTEXCACHE2_H__
+#define __VERTEXCACHE2_H__
 
-#include "vapp.h"
-#include "vutils.h"
+#include "bufferObjects.h"
+#include "thread.h"
 
-#include "vmath.h"
+const int VERTCACHE_INDEX_MEMORY_PER_FRAME = 31 * 1024 * 1024;
+const int VERTCACHE_VERTEX_MEMORY_PER_FRAME = 31 * 1024 * 1024;
+const int VERTCACHE_JOINT_MEMORY_PER_FRAME = 256 * 1024;
 
-#include "LoadShaders.h"
+const int VERTCACHE_NUM_FRAMES = 2;
 
-#include <stdio.h>
+// there are a lot more static indexes than vertexes, because interactions are just new
+// index lists that reference existing vertexes
+const int STATIC_INDEX_MEMORY = 31 * 1024 * 1024;
+const int STATIC_VERTEX_MEMORY = 31 * 1024 * 1024;	// make sure it fits in VERTCACHE_OFFSET_MASK!
 
-using namespace vmath;
+// vertCacheHandle_t packs size, offset, and frame number into 64 bits
+typedef uint64 vertCacheHandle_t;
+const int VERTCACHE_STATIC = 1;					// in the static set, not the per-frame set
+const int VERTCACHE_SIZE_SHIFT = 1;
+const int VERTCACHE_SIZE_MASK = 0x7fffff;		// 8 megs 
+const int VERTCACHE_OFFSET_SHIFT = 24;
+const int VERTCACHE_OFFSET_MASK = 0x1ffffff;	// 32 megs 
+const int VERTCACHE_FRAME_SHIFT = 49;
+const int VERTCACHE_FRAME_MASK = 0x7fff;		// 15 bits = 32k frames to wrap around
 
-BEGIN_APP_DECLARATION(DrawCommandExample)
-    // Override functions from base class
-    virtual void Initialize(const char * title);
-    virtual void Display(bool auto_redraw);
-    virtual void Finalize(void);
-    virtual void Resize(int width, int height);
+const int VERTEX_CACHE_ALIGN = 32;
+const int INDEX_CACHE_ALIGN = 16;
+const int JOINT_CACHE_ALIGN = 16;
 
-    // Member variables
-    float aspect;
-    GLuint render_prog;
-    GLuint vao[1];
-    GLuint vbo[1];
-    GLuint ebo[1];
-
-    GLint render_model_matrix_loc;
-    GLint render_projection_matrix_loc;
-END_APP_DECLARATION()
-
-DEFINE_APP(DrawCommandExample, "Drawing Commands Example")
-
-void DrawCommandExample::Initialize(const char * title)
+enum cacheType_t
 {
-    base::Initialize(title);
+	CACHE_VERTEX,
+	CACHE_INDEX,
+	CACHE_JOINT
+};
 
-    ShaderInfo shader_info[] =
-    {
-        { GL_VERTEX_SHADER, "media/shaders/primitive_restart/primitive_restart.vs.glsl" },
-        { GL_FRAGMENT_SHADER, "media/shaders/primitive_restart/primitive_restart.fs.glsl" },
-        { GL_NONE, NULL }
-    };
-
-    render_prog = LoadShaders(shader_info);
-
-    glUseProgram(render_prog);
-
-    // "model_matrix" is actually an array of 4 matrices
-    render_model_matrix_loc = glGetUniformLocation(render_prog, "model_matrix");
-    render_projection_matrix_loc = glGetUniformLocation(render_prog, "projection_matrix");
-
-    // A single triangle
-    static const GLfloat vertex_positions[] =
-    {
-        -1.0f, -1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  0.0f, 1.0f,
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 1.0f,
-    };
-
-    // Color for each vertex
-    static const GLfloat vertex_colors[] =
-    {
-        1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 1.0f, 1.0f
-    };
-
-    // Indices for the triangle strips
-    static const GLushort vertex_indices[] =
-    {
-        0, 1, 2
-    };
-
-    // Set up the element array buffer
-    glGenBuffers(1, ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertex_indices), vertex_indices, GL_STATIC_DRAW);
-
-    // Set up the vertex attributes
-    glGenVertexArrays(1, vao);
-    glBindVertexArray(vao[0]);
-
-    glGenBuffers(1, vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_positions) + sizeof(vertex_colors), NULL, GL_STATIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_positions), vertex_positions);
-    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertex_positions), sizeof(vertex_colors), vertex_colors);
-
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid *)sizeof(vertex_positions));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-}
-
-void DrawCommandExample::Display(bool auto_redraw)
+struct geoBufferSet_t
 {
-    float t = float(app_time() & 0x1FFF) / float(0x1FFF);
-    static float q = 0.0f;
-    static const vmath::vec3 X(1.0f, 0.0f, 0.0f);
-    static const vmath::vec3 Y(0.0f, 1.0f, 0.0f);
-    static const vmath::vec3 Z(0.0f, 0.0f, 1.0f);
-    static const vmath::vec4 black = vmath::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+	qqIndexBuffer			indexBuffer;
+	qqVertexBuffer			vertexBuffer;
+	//qqJointBuffer			jointBuffer;
 
-    mat4 model_matrix;
+	byte* mappedVertexBase;
+	byte* mappedIndexBase;
+	byte* mappedJointBase;
+	
+	qqSysInterlockedInteger	indexMemUsed;
+	qqSysInterlockedInteger	vertexMemUsed;
+	qqSysInterlockedInteger	jointMemUsed;
+	int						allocations;	// number of index and vertex allocations combined
+};
 
-    // Setup
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
+//// qqVertexCache
+//class qqVertexCache
+//{
+//public:
+//	void			Init(bool restart = false);
+//	void			Shutdown();
+//	void			PurgeAll();
+//
+//	// call on loading a new map
+//	void			FreeStaticData();
+//
+//	// this data is only valid for one frame of rendering
+//	vertCacheHandle_t	AllocVertex(const void* data, int bytes) {
+//		return ActuallyAlloc(frameData[listNum], data, bytes, CACHE_VERTEX);
+//	}
+//	vertCacheHandle_t	AllocIndex(const void* data, int bytes) {
+//		return ActuallyAlloc(frameData[listNum], data, bytes, CACHE_INDEX);
+//	}
+//	vertCacheHandle_t	AllocJoint(const void* data, int bytes) {
+//		return ActuallyAlloc(frameData[listNum], data, bytes, CACHE_JOINT);
+//	}
+//
+//	// this data is valid until the next map load
+//	vertCacheHandle_t	AllocStaticVertex(const void* data, int bytes) {
+//		if (staticData.vertexMemUsed.GetValue() + bytes > STATIC_VERTEX_MEMORY) {
+//			idLib::FatalError("AllocStaticVertex failed, increase STATIC_VERTEX_MEMORY");
+//		}
+//		return ActuallyAlloc(staticData, data, bytes, CACHE_VERTEX);
+//	}
+//	vertCacheHandle_t	AllocStaticIndex(const void* data, int bytes) {
+//		if (staticData.indexMemUsed.GetValue() + bytes > STATIC_INDEX_MEMORY) {
+//			idLib::FatalError("AllocStaticIndex failed, increase STATIC_INDEX_MEMORY");
+//		}
+//		return ActuallyAlloc(staticData, data, bytes, CACHE_INDEX);
+//	}
+//
+//	byte* MappedVertexBuffer(vertCacheHandle_t handle) {
+//		release_assert(!CacheIsStatic(handle));
+//		const uint64 offset = (int)(handle >> VERTCACHE_OFFSET_SHIFT) & VERTCACHE_OFFSET_MASK;
+//		const uint64 frameNum = (int)(handle >> VERTCACHE_FRAME_SHIFT) & VERTCACHE_FRAME_MASK;
+//		release_assert(frameNum == (currentFrame & VERTCACHE_FRAME_MASK));
+//		return frameData[listNum].mappedVertexBase + offset;
+//	}
+//
+//	byte* MappedIndexBuffer(vertCacheHandle_t handle) {
+//		release_assert(!CacheIsStatic(handle));
+//		const uint64 offset = (int)(handle >> VERTCACHE_OFFSET_SHIFT) & VERTCACHE_OFFSET_MASK;
+//		const uint64 frameNum = (int)(handle >> VERTCACHE_FRAME_SHIFT) & VERTCACHE_FRAME_MASK;
+//		release_assert(frameNum == (currentFrame & VERTCACHE_FRAME_MASK));
+//		return frameData[listNum].mappedIndexBase + offset;
+//	}
+//
+//	// Returns false if it's been purged
+//	// This can only be called by the front end, the back end should only be looking at
+//	// vertCacheHandle_t that are already validated.
+//	bool			CacheIsCurrent(const vertCacheHandle_t handle) {
+//		const int isStatic = handle & VERTCACHE_STATIC;
+//		if (isStatic) {
+//			return true;
+//		}
+//		const uint64 frameNum = (int)(handle >> VERTCACHE_FRAME_SHIFT) & VERTCACHE_FRAME_MASK;
+//		if (frameNum != (currentFrame & VERTCACHE_FRAME_MASK)) {
+//			return false;
+//		}
+//		return true;
+//	}
+//
+//	static bool		CacheIsStatic(const vertCacheHandle_t handle) {
+//		return (handle & VERTCACHE_STATIC) != 0;
+//	}
+//
+//	// vb/ib is a temporary reference -- don't store it
+//	bool			GetVertexBuffer(vertCacheHandle_t handle, qqVertexBuffer* vb);
+//	bool			GetIndexBuffer(vertCacheHandle_t handle, qqIndexBuffer* ib);
+//	//bool			GetJointBuffer(vertCacheHandle_t handle, idJointBuffer* jb);
+//
+//	void			BeginBackEnd();
+//
+//public:
+//	int				currentFrame;	// for determining the active buffers
+//	int				listNum;		// currentFrame % VERTCACHE_NUM_FRAMES
+//	int				drawListNum;	// (currentFrame-1) % VERTCACHE_NUM_FRAMES
+//
+//	geoBufferSet_t	staticData;
+//	geoBufferSet_t	frameData[VERTCACHE_NUM_FRAMES];
+//
+//	// High water marks for the per-frame buffers
+//	int				mostUsedVertex;
+//	int				mostUsedIndex;
+//	int				mostUsedJoint;
+//
+//	// Try to make room for <bytes> bytes
+//	vertCacheHandle_t	ActuallyAlloc(geoBufferSet_t& vcs, const void* data, int bytes, cacheType_t type);
+//};
 
-    glClearBufferfv(GL_COLOR, 0, black);
-
-    // Activate simple shading program
-    glUseProgram(render_prog);
-
-    // Set up the model and projection matrix
-    vmath::mat4 projection_matrix(vmath::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f));
-    glUniformMatrix4fv(render_projection_matrix_loc, 1, GL_FALSE, projection_matrix);
-
-    // Set up for a glDrawElements call
-    glBindVertexArray(vao[0]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-
-    // Draw Arrays...
-    model_matrix = vmath::translate(-3.0f, 0.0f, -5.0f);
-    glUniformMatrix4fv(render_model_matrix_loc, 1, GL_FALSE, model_matrix);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    // DrawElements
-    model_matrix = vmath::translate(-1.0f, 0.0f, -5.0f);
-    glUniformMatrix4fv(render_model_matrix_loc, 1, GL_FALSE, model_matrix);
-    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL);
-
-    // DrawElementsBaseVertex
-    model_matrix = vmath::translate(1.0f, 0.0f, -5.0f);
-    glUniformMatrix4fv(render_model_matrix_loc, 1, GL_FALSE, model_matrix);
-    glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL, 1);
-
-    // DrawArraysInstanced
-    model_matrix = vmath::translate(3.0f, 0.0f, -5.0f);
-    glUniformMatrix4fv(render_model_matrix_loc, 1, GL_FALSE, model_matrix);
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
-
-    base::Display();
-}
-
-void DrawCommandExample::Finalize(void)
-{
-    glUseProgram(0);
-    glDeleteProgram(render_prog);
-    glDeleteVertexArrays(1, vao);
-    glDeleteBuffers(1, vbo);
-}
-
-void DrawCommandExample::Resize(int width, int height)
-{
-    glViewport(0, 0 , width, height);
-
-    aspect = float(height) / float(width);
-}
+#endif

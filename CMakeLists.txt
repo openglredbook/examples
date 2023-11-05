@@ -79,6 +79,10 @@ set(EXAMPLES
   12-simplecompute
 )
 
+set(ADDITIONS
+  miniGLRender
+)
+
 find_package(OpenMP)
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -93,6 +97,32 @@ foreach(EXAMPLE ${EXAMPLES})
     configure_file(${PROJECT_SOURCE_DIR}/build/templates/vs2013.vcxproj.user.in ${CMAKE_CURRENT_BINARY_DIR}/${EXAMPLE}.vcxproj.user @ONLY)
   endif(MSVC)
 endforeach(EXAMPLE)
+
+foreach(ADDITION ${ADDITIONS})
+  add_executable(${ADDITION} WIN32
+    src/${ADDITION}/miniRenderApp.cpp
+    src/${ADDITION}/tr_common.cpp
+    src/${ADDITION}/tr_common.h
+    src/${ADDITION}/common.cpp
+    src/${ADDITION}/common.h
+    src/${ADDITION}/math_common.cpp
+    src/${ADDITION}/math_common.h
+    src/${ADDITION}/thread.cpp
+    src/${ADDITION}/thread.h
+    src/${ADDITION}/renderSystem.cpp
+    src/${ADDITION}/renderSystem.h
+    src/${ADDITION}/bufferObjects.cpp
+    src/${ADDITION}/bufferObjects.h
+    src/${ADDITION}/vertexCache.cpp
+    src/${ADDITION}/vertexCache.h
+)
+
+  set_property(TARGET ${ADDITION} PROPERTY DEBUG_POSTFIX _d)
+  target_link_libraries(${ADDITION} ${COMMON_LIBS})
+  if(MSVC)
+    configure_file(${PROJECT_SOURCE_DIR}/build/templates/vs2013.vcxproj.user.in ${CMAKE_CURRENT_BINARY_DIR}/${ADDITION}.vcxproj.user @ONLY)
+  endif(MSVC)
+endforeach(ADDITION)
 
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LINUX")
