@@ -5,6 +5,8 @@
 #include <GL3/gl3w.h>
 
 #include <GLFW/glfw3.h>
+#include <sys/time.h>
+#include <string.h>
 
 #define BUFFER_OFFSET(a) ((void*)(a))
 
